@@ -1,7 +1,7 @@
 /*
 Brightness measuring
 
-Original Version: Brightness_Measurement_v102
+Original File Version: Brightness_Measurement_v102
 */
 
 
