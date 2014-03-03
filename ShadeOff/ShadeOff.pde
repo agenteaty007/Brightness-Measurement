@@ -1,6 +1,8 @@
 /*
-Brightness measuring measures  and draws it
- */
+Brightness measuring measures and draws it
+
+Original File Version: Brightness_Measurement_v109
+*/
 
 import processing.video.*;
 
@@ -19,7 +21,7 @@ float[] tempPrevY = new float[10];
 int[] diameterInt = new int[10];
 int[] areaData = new int[10];
 float[] brightnessFloat = new float[10];
-float angleStart = PI+HALF_PI;
+float angleStart = 0;
 int arcIndex=0;
 
 void setup() {
@@ -92,8 +94,8 @@ void draw() {
     int arcPrinted = 1;
     while(arcIndex != arcPrinted && arcIndex > 0)
     {
-      text(brightnessFloat[arcPrinted],100,50+(arcPrinted*25));
-      text(diameterInt[arcPrinted]/2,50,50+(arcPrinted*25));
+      text(brightnessFloat[arcPrinted],500,50+(arcPrinted*25));
+      //text(diameterInt[arcPrinted]/2,50,50+(arcPrinted*25));
       arc(startX,startY,diameterInt[arcPrinted],diameterInt[arcPrinted], angleStart,angleStart+HALF_PI);
       arcPrinted++;
     
@@ -116,7 +118,7 @@ void circleBrightness(int arcNumber)
     int pradius = diameterInt[arcNumber-1]/2;
     double pixelPos;
     int target;
-    for (int b = (oY-radius); b < oY; b++)
+    for (int b = (oY); b < (oY+radius); b++)
     {
       //print(b);
       //print("\t");
