@@ -1,6 +1,8 @@
 /*
 Brightness measuring
- */
+
+Original Version: Brightness_Measurement_v102
+*/
 
 
 import processing.video.*;
