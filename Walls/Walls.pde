@@ -1,43 +1,63 @@
 /*
 Brightness measuring
+Wall Experiment
 
-Original File Version: Brightness_Measurement_v102
+Brightness measuring from Walls. Measures and draws it.
+Designed for Design Tech program at Pasadena City College.
+
+Author: Alberto Tam Yong
+Date: 08-27-14
+Note: The first code was written back in 2013. This is an attempt for its publication.
 */
 
+import processing.video.*; //Required for Capture, webcam features
 
-import processing.video.*;
-
-Capture video;
-
-PrintWriter output;
-
-PFont f;
-
+Capture video; //Object used for webcam
+PrintWriter output; //Used to write to write to file
+PFont f; //Required for writing text
 double brightestValue = 0; // Brightness of the brightest video pixel
-int pictureVar = 1;
+
+int sideRight_currentLine = 0;
+int numberOfSideRightLines = 20;
+int[] sideRightLines = new int[numberOfSideRightLines];
+int sideRight_fontSize = (8*height)/(10*numberOfSideRightLines);
+int sideRight_marginX = 10;
 
 void setup() {
-  String[] cameras = Capture.list();
+  String[] cameras = Capture.list(); //Retrieve list of available camera devices and modes
   size(640,480, P2D); // Change size to 320 x 240 if too slow at 640 x 480
-  // Uses the default video input, see the reference if this causes an error
+  
   for(int i=0;i<cameras.length;i++)
   {
+    //Show numbered list of cameras and modes available
     print(i);
     print("\t");
     println(cameras[i]);
   }
-  video = new Capture(this, cameras[3]);
-  video.start();  
+  
+  //Select camera and mode. Change the number inside cameras[ ] for selection.
+  video = new Capture(this, cameras[37]);
+  video.start();
+  
+  fill(255,255,255);
   noStroke();
   smooth();
-  f=createFont("Arial",20,true);
-  output = createWriter("brightness.txt");
+  background(0,0,0); //RGB Color Black for background
+  
+  f = createFont("Arial",20,true);
+  output = createWriter(String.valueOf(year())+String.valueOf(month())+String.valueOf(day())+".txt");
+  
+  for(int i=0; i < numberOfSideRightLines; i++)
+  {
+    sideRightLines[i] = i*height/numberOfSideRightLines;
+  }
 }
 
 void draw() {
   if (video.available()) {
     video.read();
-    image(video, 0, 0, width, height); // Draw the webcam video onto the screen
+    image(video, 0, 0, 8*width/10, 8*height/10); // Draw the webcam video onto the screen
+    //Modified to use only 80% of the screen
     int brightestX = 0; // X-coordinate of the brightest video pixel
     int brightestY = 0; // Y-coordinate of the brightest video pixel
     
@@ -72,6 +92,7 @@ void draw() {
     brightestValue = brightestValue/index;
     
     textFont(f,20);
+    fill(255,255,255);
     float temp = (float)brightestValue;
     text(temp,100,100);
     //output.println(brightestValue);
@@ -81,23 +102,59 @@ void draw() {
 
 void mousePressed()
 {
-  String picName = "Sample";
-  String picNumber = str(pictureVar);
+  //Compose file name
+  String picName = "Wall ";
+  String picNumber = strTimeRetrieval();;
   String picFormat = ".jpeg";
-  output.print(picName+picNumber);
+  
+  String fileName = picName + picNumber + picFormat;
+  
+  //Store log in text file
+  output.print(fileName);
   output.print("\t");
   output.println(brightestValue);
-  save(picName+picNumber+picFormat);
-  //output.flush();
-  //output.close();
-  //exit();
-  pictureVar++;
+  
+  //Isolate camera. Take snapshot and save
+  
+  save(fileName);
+  
+  //Show new file on Side Right panel
+  //textFont(f,8/10*height/numberOfSideRightLines);
+  textFont(f,sideRight_fontSize);
+  text(fileName,(8/10*width)+sideRight_marginX,sideRightLines[sideRight_currentLine]+sideRight_fontSize);
+  if(sideRight_currentLine <= numberOfSideRightLines)
+  {
+    sideRight_currentLine++;
+  }
+  else
+  {
+    sideRight_currentLine = 0;
+  }
 }
+
+String strTimeRetrieval()
+{
+  //Compose a String with date and time stamp
+  String year,month,day,hour,minute,second;
+  year = String.valueOf(year());
+  month = (month() < 10? "0" + String.valueOf(month()) : String.valueOf(month()));
+  day = (day() < 10? "0" + String.valueOf(day()) : String.valueOf(day()));
+  hour = String.valueOf(hour());
+  minute = String.valueOf(minute());
+  second = String.valueOf(second());
+  return year+month+day+hour+minute+second;
+}
+  
 
 void keyPressed()
 {
-  //output.println(brightestValue);
-  output.flush();
-  output.close();
-  exit();
+  //Exit protocol
+  if(key == ESC)
+  {
+    output.flush();
+    output.close();
+    exit();
+  }
 }
+
+

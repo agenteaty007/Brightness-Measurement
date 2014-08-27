@@ -1,28 +1,37 @@
 /*
-Brightness measuring measures and draws it
+Brightness measuring
+Floor Experiment
 
-Original File Version: Brightness_Measurement_v109
+Brightness measuring from Floor.
+A selection of arcs allows for measuring specific regions.
+Designed for Design Tech program at Pasadena City College.
+
+Author: Alberto Tam Yong
+Date: 08-27-14
+Note: The first code was written back in 2013. This is an attempt for its publication.
 */
 
-import processing.video.*;
+import processing.video.*; //Webcam
 
-Capture video;
+Capture video; //Webcam
 
-PrintWriter output;
-
-PFont f;
+PrintWriter output; //File output
+PFont f; //Text on screen
 
 double brightestValue = 0; // Brightness of the brightest video pixel
 int pictureVar = 1;
 int ellipseVar = 0;
 float startX,startY,diameter;
-float[] tempPrevX = new float[10];
-float[] tempPrevY = new float[10];
-int[] diameterInt = new int[10];
-int[] areaData = new int[10];
-float[] brightnessFloat = new float[10];
+float[] tempPrevX = new float[20];
+float[] tempPrevY = new float[20];
+int[] diameterInt = new int[20];
+int[] areaData = new int[20];
+float[] brightnessFloat = new float[20];
 float angleStart = 0;
+float angleEnd = HALF_PI; //Clockwise
 int arcIndex=0;
+int[] textX = new int[20];
+int[] textY = new int[20];
 
 void setup() {
   String[] cameras = Capture.list();
@@ -34,133 +43,230 @@ void setup() {
     print("\t");
     println(cameras[i]);
   }
-  video = new Capture(this, cameras[3]);
-  //Lenovo
-  //#3 for external webcam
-  //#1 for embedded webcam
-  video.start();  
+  
+  video = new Capture(this, cameras[39]); //Choose the camera that fits best for you
+  video.start();
+  
+  for(int i=0; i<10; i++)
+  {
+    textX[i] = 0;
+    textY[i] = 0;
+  }
+  
   stroke(0);
   smooth();
   f=createFont("Arial",20,true);
-  output = createWriter("brightness.txt");
+  
+  //Create text file for some datalog
+  output = createWriter("Room-"+String.valueOf(year())+String.valueOf(month())+String.valueOf(day())+".txt");
 }
 
-void draw() {
-  if (video.available()) {
+void draw()
+{
+  if(video.available())
+  {
     video.read();
-    image(video, 0, 0, width, height); // Draw the webcam video onto the screen
-    int brightestX = 0; // X-coordinate of the brightest video pixel
-    int brightestY = 0; // Y-coordinate of the brightest video pixel
-    
-    // Search for the brightest pixel: For each row of pixels in the video image and
-    // for each pixel in the yth row, compute each pixel's index in the video
+    image(video,0,0,width,height);
     video.loadPixels();
     
-    /*
-    int index = 0;
-    float xTempLength;
-    float oX = startX;
-    float oY = startY;
-    int target;
-    for (float y = (oY-radius); y < (oY+radius); y++)
-    {
-      xTempLength = sqrt(sq(radius)-sq(oY-y));
-      for (float x = (oX-xTempLength); x < (oX+xTempLength); x++)
-      {
-        target = int(((y-1)*width)+(x+1));
-        
-        // Get the color stored in the pixel
-        int pixelValue = video.pixels[target];
-        // Determine the brightness of the pixel
-        float pixelBrightness = brightness(pixelValue);
-        // If that value is brighter than any previous, then store the
-        // brightness of that pixel, as well as its (x,y) location
-        
-        brightestValue = brightestValue + pixelBrightness;
-        
-        index++;
-      }
-    }
-    
-    // Draw a large, yellow circle at the brightest pixel
-    //fill(255, 204, 0, 128);
-    noFill();
-    brightestValue = brightestValue/index;
-    
-    */
-    
     textFont(f,20);
-    //text(brightnessFloat,100,50);
-    int arcPrinted = 1;
+    
+    int arcPrinted = 1; //Counts arcs
     while(arcIndex != arcPrinted && arcIndex > 0)
     {
-      text(brightnessFloat[arcPrinted],500,50+(arcPrinted*25));
-      //text(diameterInt[arcPrinted]/2,50,50+(arcPrinted*25));
-      arc(startX,startY,diameterInt[arcPrinted],diameterInt[arcPrinted], angleStart,angleStart+HALF_PI);
+      text(brightnessFloat[arcPrinted],textX[arcPrinted],textY[arcPrinted]);
+      arc(startX,startY,diameterInt[arcPrinted],diameterInt[arcPrinted],angleStart,angleEnd);
       arcPrinted++;
-    
     }
-    //output.println(brightestValue);
-    //ellipse(brightestX, brightestY, 200, 200);
+    //print("("+mouseX+","+mouseY+") ");
+    //print(brightness((mouseY-1)*width + mouseX));
+    //println();
   }
 }
 
 void circleBrightness(int arcNumber)
 {
   int index = 0;
-    int xTempLength;
-    int xTempLengthInner;
-    int oX = int(startX);
-    int oY = int(startY);
-    int pX = int(tempPrevX[arcNumber-1]);
-    int pY = int(tempPrevY[arcNumber-1]);
-    int radius = diameterInt[arcNumber]/2;
-    int pradius = diameterInt[arcNumber-1]/2;
-    double pixelPos;
-    int target;
-    for (int b = (oY); b < (oY+radius); b++)
+  int xTempLengthOut;
+  int xTempLengthInner;
+  int oX = int(startX);
+  int oY = int(startY);
+  int pX = int(tempPrevX[arcNumber-1]);
+  int pY = int(tempPrevY[arcNumber-1]);
+  int radius = diameterInt[arcNumber]/2;
+  int pradius = diameterInt[arcNumber-1]/2;
+  double pixelPos;
+  int target;
+  
+  //Identify (x,y) quadrant
+  //Quadrant I
+  if(int(startX) > width/2 && int(startY) < height/2)
+  {
+    brightestValue = 0;
+    //Calculate brightness average
+  for (int b = (oY); b < (oY+radius); b++)
+  {
+    xTempLengthOut = int(sqrt(sq(radius)-sq(oY-b)));
+    if(pY > b)
     {
-      //print(b);
-      //print("\t");
-      xTempLength = int(sqrt(sq(radius)-sq(oY-b)));
-      if(pY < b)
-      {
-        xTempLengthInner = int(sqrt(sq(pradius)-sq(oY-b)));
-      }
-      else
-      {
-        xTempLengthInner = 0;
-      }
-      //print(xTempLength);
-      //print("\t");
-      for (int a = (oX+xTempLengthInner); a < (oX+xTempLength); a++)
-      {
-        print("("+a+","+b+")");
-        print("\t");
-        pixelPos = ((b-1)*width)+(a-1);
-        //print(pixelPos);
-        //print("\t");
-        target = (int)pixelPos;
-        // Get the color stored in the pixel
-        int pixelValue = video.pixels[target];
-        // Determine the brightness of the pixel
-        float pixelBrightness = brightness(pixelValue);
-        // If that value is brighter than any previous, then store the
-        // brightness of that pixel, as well as its (x,y) location
-        
-        brightestValue = brightestValue + pixelBrightness;
-        
-        index++;
-      }
+      xTempLengthInner = int(sqrt(sq(pradius)-sq(oY-b)));
+    }
+    else
+    {
+      xTempLengthInner = 0;
     }
     
-    // Draw a large, yellow circle at the brightest pixel
-    //fill(255, 204, 0, 128);
-    noFill();
-    brightestValue = brightestValue/index;
-    brightnessFloat[arcIndex] = (float)brightestValue;
+    for (int a = (oX-xTempLengthOut); a < (oX-xTempLengthInner); a++)
+    {
+      print("("+a+","+b+")");
+      print("\t");
+      pixelPos = ((b-1)*width)+(a-1);
+      //print(pixelPos);
+      //print("\t");
+      target = (int)pixelPos;
+      // Get the color stored in the pixel
+      int pixelValue = video.pixels[target];
+      // Determine the brightness of the pixel
+      float pixelBrightness = brightness(pixelValue);
+      // If that value is brighter than any previous, then store the
+      // brightness of that pixel, as well as its (x,y) location
+        
+      brightestValue += pixelBrightness;
+        
+      index++;
+    }
+  }
+  noFill();
+  brightestValue = brightestValue/index;
+  brightnessFloat[arcIndex] = (float)brightestValue;
+  }
+  
+  //Quadrant II
+  else if(int(startX) < width/2 && int(startY) < height/2)
+  {
+    brightestValue = 0;
+    //Calculate brightness average
+  for (int b = (oY); b < (oY+radius); b++)
+  {
+    xTempLengthOut = int(sqrt(sq(radius)-sq(oY-b)));
+    if(pY > b)
+    {
+      xTempLengthInner = int(sqrt(sq(pradius)-sq(oY-b)));
+    }
+    else
+    {
+      xTempLengthInner = 0;
+    }
+    
+    for (int a = (oX+xTempLengthInner); a < (oX+xTempLengthOut); a++)
+    {
+      print("("+a+","+b+")");
+      print("\t");
+      pixelPos = ((b-1)*width)+(a-1);
+      //print(pixelPos);
+      //print("\t");
+      target = (int)pixelPos;
+      // Get the color stored in the pixel
+      int pixelValue = video.pixels[target];
+      // Determine the brightness of the pixel
+      float pixelBrightness = brightness(pixelValue);
+      // If that value is brighter than any previous, then store the
+      // brightness of that pixel, as well as its (x,y) location
+        
+      brightestValue = brightestValue + pixelBrightness;
+        
+      index++;
+    }
+  }
+  noFill();
+  brightestValue = brightestValue/index;
+  brightnessFloat[arcIndex] = (float)brightestValue;
+  }
+  
+  //Quadrant III
+  else if(int(startX) < width/2 && int(startY) > height/2)
+  {
+    brightestValue = 0;
+    //Calculate brightness average
+  for (int b = (oY-radius); b < (oY); b++)
+  {
+    xTempLengthOut = int(sqrt(sq(radius)-sq(oY-b)));
+    if(pY < b)
+    {
+      xTempLengthInner = int(sqrt(sq(pradius)-sq(oY-b)));
+    }
+    else
+    {
+      xTempLengthInner = 0;
+    }
+    
+    for (int a = (oX+xTempLengthInner); a < (oX+xTempLengthOut); a++)
+    {
+      print("("+a+","+b+")");
+      print("\t");
+      pixelPos = ((b-1)*width)+(a-1);
+      //print(pixelPos);
+      //print("\t");
+      target = (int)pixelPos;
+      // Get the color stored in the pixel
+      int pixelValue = video.pixels[target];
+      // Determine the brightness of the pixel
+      float pixelBrightness = brightness(pixelValue);
+      // If that value is brighter than any previous, then store the
+      // brightness of that pixel, as well as its (x,y) location
+        
+      brightestValue = brightestValue + pixelBrightness;
+        
+      index++;
+    }
+  }
+  noFill();
+  brightestValue = brightestValue/index;
+  brightnessFloat[arcIndex] = (float)brightestValue;
+  }
+  
+  //Quadrant IV
+  else if(int(startX) > width/2 && int(startY) > height/2)
+  {
+    brightestValue = 0;
+    //Calculate brightness average
+  for (int b = (oY-radius); b < (oY); b++)
+  {
+    xTempLengthOut = int(sqrt(sq(radius)-sq(oY-b)));
+    if(pY < b)
+    {
+      xTempLengthInner = int(sqrt(sq(pradius)-sq(oY-b)));
+    }
+    else
+    {
+      xTempLengthInner = 0;
+    }
+    
+    for (int a = (oX-xTempLengthOut); a < (oX-xTempLengthInner); a++)
+    {
+      print("("+a+","+b+")");
+      print("\t");
+      pixelPos = ((b-1)*width)+(a-1);
+      //print(pixelPos);
+      //print("\t");
+      target = (int)pixelPos;
+      // Get the color stored in the pixel
+      int pixelValue = video.pixels[target];
+      // Determine the brightness of the pixel
+      float pixelBrightness = brightness(pixelValue);
+      // If that value is brighter than any previous, then store the
+      // brightness of that pixel, as well as its (x,y) location
+        
+      brightestValue = brightestValue + pixelBrightness;
+        
+      index++;
+    }
+  }
+  noFill();
+  brightestValue = brightestValue/index;
+  brightnessFloat[arcIndex] = (float)brightestValue;
+  }
 }
-
 
 void mousePressed()
 {
@@ -178,34 +284,110 @@ void mousePressed()
   else if(mouseButton == RIGHT && ellipseVar == 1)
   {
     stroke(0);
-    diameter=(2*(sqrt(sq(startX-mouseX)+sq(startY-mouseY))));
+    diameter=(2*(sqrt(sq(abs(startX-mouseX))+sq(abs(startY-mouseY)))));
     diameterInt[arcIndex] = int(diameter);
-    tempPrevX[arcIndex] = startX+(diameterInt[arcIndex-1]/2);
-    tempPrevY[arcIndex] = startY-(diameterInt[arcIndex-1]/2);
-    //ellipseVar=0;
+    
+    //Quadrant I
+    if(int(startX) > width/2 && int(startY) < height/2)
+    {
+      textX[arcIndex] = 100;
+      textY[arcIndex] = 200 + arcIndex*25;
+      angleStart = HALF_PI;
+      angleEnd = PI;
+      tempPrevX[arcIndex] = startX-(diameterInt[arcIndex-1]/2);
+      tempPrevY[arcIndex] = startY+(diameterInt[arcIndex-1]/2);
+    }
+    
+    //Quadrant II
+    else if(int(startX) < width/2 && int(startY) < height/2)
+    {
+      textX[arcIndex] = 500;
+      textY[arcIndex] = 200 + arcIndex*25;
+      angleStart = 0;
+      angleEnd = HALF_PI;
+      tempPrevX[arcIndex] = startX+(diameterInt[arcIndex-1]/2);
+      tempPrevY[arcIndex] = startY+(diameterInt[arcIndex-1]/2);
+    }
+    
+    //Quadrant III
+    else if(int(startX) < width/2 && int(startY) > height/2)
+    {
+      textX[arcIndex] = 500;
+      textY[arcIndex] = 50 + arcIndex*25;
+      angleStart = PI+HALF_PI;
+      angleEnd = 2*PI;
+      tempPrevX[arcIndex] = startX+(diameterInt[arcIndex-1]/2);
+      tempPrevY[arcIndex] = startY-(diameterInt[arcIndex-1]/2);
+    }
+    
+    //Quadrant IV
+    else if(int(startX) > width/2 && int(startY) > height/2)
+    {
+      textX[arcIndex] = 100;
+      textY[arcIndex] = 50 + arcIndex*25;
+      angleStart = PI;
+      angleEnd = PI + HALF_PI;
+      tempPrevX[arcIndex] = startX-(diameterInt[arcIndex-1]/2);
+      tempPrevY[arcIndex] = startY-(diameterInt[arcIndex-1]/2);
+    }
+    
     circleBrightness(arcIndex);
     arcIndex++;
   }
   else
   {
-    String picName = "Sample";
-    String picNumber = str(pictureVar);
+    //Compose file name
+    String picName = "Room-";
+    String picNumber = strTimeRetrieval();;
     String picFormat = ".jpeg";
-    output.print(picName+picNumber);
-    output.print("\t");
-    output.println(brightestValue);
-    save(picName+picNumber+picFormat);
-    //output.flush();
-    //output.close();
-    //exit();
-    pictureVar++;
+    
+    String fileName = picName + picNumber + picFormat;
+  
+    //Store log in text file
+    output.print(fileName);
+    for(int i = 1; i < arcIndex; i++)
+    {
+      output.print("\t");
+      output.print("("+i+")"+brightnessFloat[arcIndex]);
+    }
+    output.println();
+    
+    //Take snapshot and save
+    save(fileName);
   }
 }
 
 void keyPressed()
 {
-  //output.println(brightestValue);
-  output.flush();
-  output.close();
-  exit();
+  //Exit protocol
+  if(key == ESC)
+  {
+    output.flush();
+    output.close();
+    exit();
+  }
+  else if(key == 'r')
+  {
+    for(int i = 0; i <= arcIndex; i++)
+    {
+      brightnessFloat[arcIndex] = 0;
+    }
+    brightestValue = 0;
+    arcIndex = 0;
+    ellipseVar = 0;
+  }
 }
+
+String strTimeRetrieval()
+{
+  //Compose a String with date and time stamp
+  String year,month,day,hour,minute,second;
+  year = String.valueOf(year());
+  month = (month() < 10? "0" + String.valueOf(month()) : String.valueOf(month()));
+  day = (day() < 10? "0" + String.valueOf(day()) : String.valueOf(day()));
+  hour = String.valueOf(hour());
+  minute = String.valueOf(minute());
+  second = String.valueOf(second());
+  return year+month+day+hour+minute+second;
+}
+
